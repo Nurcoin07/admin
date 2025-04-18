@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Мой сайт</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; padding-bottom: 60px; background: #f4f4f4; }
+    section { display: none; padding: 20px; position: relative; }
+    section.active { display: block; }
+    h2 { text-align: center; }
+    .bottom-menu {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      display: flex; justify-content: space-around; background: #b30000; color: white;
+    }
+    .bottom-menu button {
+      flex: 1; padding: 15px; border: none; background: transparent; color: white;
+      font-weight: bold; font-size: 16px;
+    }
+    .bottom-menu button.active { background: #900000; }
+
+    input, textarea {
+      width: 100%; padding: 10px; margin: 10px 0;
+      border: 1px solid #ccc; border-radius: 5px;
+    }
+    button.submit-btn {
+      background: #b30000; color: white; border: none;
+      padding: 10px; width: 100%; border-radius: 5px; cursor: pointer;
+    }
+    button.submit-btn:hover { background: #900000; }
+    .message { color: green; font-weight: bold; }
+    
+    .review, .item, .zayavka {
+      background: white; border-radius: 10px; padding: 10px; margin: 10px 0;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .review button, .item button, .zayavka button {
+      background: #ff0000; color: white; border: none; padding: 5px 10px; cursor: pointer;
+    }
+    
+    .review button:hover, .item button:hover, .zayavka button:hover {
+      background: #cc0000;
+    }
+
+    .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; max-width: 1000px; margin: auto; }
+  </style>
+</head>
+<body>
+
+  <!-- Новости -->
+  <section id="news" class="active">
+    <h2>Новости</h2>
+    <h3>Опубликовать новость</h3>
+    <input type="text" id="newsTitle" placeholder="Заголовок новости" />
+    <textarea id="newsText" placeholder="Текст новости"></textarea>
+    <button class="submit-btn" onclick="submitNews()">Опубликовать новость</button>
+    <div class="message" id="newsMessage"></div>
+
+    <h3>Последние новости:</h3>
+    <div id="newsList"></div>
+  </section>
+
+  <!-- Отзывы -->
+  <section id="reviews">
+    <h2>Отзывы</h2>
+    <input type="text" id="reviewerName" placeholder="Ваше имя" />
+    <textarea id="reviewText" placeholder="Ваш отзыв"></textarea>
+    <button class="submit-btn" onclick="submitReview()">Отправить отзыв</button>
+    <div class="message" id="reviewMessage"></div>
+
+    <h3>Все отзывы:</h3>
+    <div id="reviewsList"></div>
+  </section>
+
+  
+
+  <!-- Меню -->
+  <div class="bottom-menu">
+    <button onclick="showSection('news')" class="active">Новости</button>
+    <button onclick="showSection('reviews')">Отзывы</button>
+    <a href="https://nurcoin07.github.io/zayavki/"><button>Заявки</button></a>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+
+  <script>
+    // Firebase конфигурация для новостей и отзывов
+    const firebaseConfig = {
+      apiKey: "AIzaSyC6Fb896Rx_jFJ3SYUJd6EAjjcRdXYHyFY",
+      authDomain: "my-posts-site.firebaseapp.com",
+      projectId: "my-posts-site"
+    };
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = app.firestore();
+
+    // Загрузка отзывов
+    async function submitReview() {
+      const reviewerName = document.getElementById('reviewerName').value.trim();
+      const reviewText = document.getElementById('reviewText').value.trim();
+      const reviewMessageDiv = document.getElementById('reviewMessage');
+
+      if (!reviewerName || !reviewText) {
+        reviewMessageDiv.textContent = "Заполните все поля!";
+        return;
+      }
+
+      try {
+        await db.collection("reviews").add({
+          name: reviewerName,
+          review: reviewText,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        reviewMessageDiv.textContent = "Отзыв успешно отправлен!";
+        document.getElementById('reviewerName').value = "";
+        document.getElementById('reviewText').value = "";
+        loadReviews(); // Обновляем список отзывов
+      } catch (error) {
+        reviewMessageDiv.textContent = "Ошибка при отправке отзыва.";
+      }
+    }
+
+    async function loadReviews() {
+      const reviewsList = document.getElementById('reviewsList');
+      const snapshot = await db.collection("reviews").orderBy("createdAt", "desc").get();
+      reviewsList.innerHTML = '';
+      snapshot.docs.forEach(doc => {
+        const reviewData = doc.data();
+        const reviewElement = document.createElement('div');
+        reviewElement.classList.add('review');
+        reviewElement.innerHTML = `
+          <p><strong>${reviewData.name}:</strong> ${reviewData.review}</p>
+          <button onclick="deleteReview('${doc.id}')">Удалить</button>
+        `;
+        reviewsList.appendChild(reviewElement);
+      });
+    }
+
+    async function deleteReview(reviewId) {
+      await db.collection("reviews").doc(reviewId).delete();
+      loadReviews();
+    }
+
+    // Загрузка новостей
+    async function submitNews() {
+      const title = document.getElementById('newsTitle').value.trim();
+      const text = document.getElementById('newsText').value.trim();
+      const newsMessageDiv = document.getElementById('newsMessage');
+
+      if (!title || !text) {
+        newsMessageDiv.textContent = "Заполните все поля!";
+        return;
+      }
+
+      try {
+        await db.collection("texts").add({
+          title: title,
+          text: text,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        newsMessageDiv.textContent = "Новость успешно опубликована!";
+        document.getElementById('newsTitle').value = "";
+        document.getElementById('newsText').value = "";
+        loadNews(); // Обновляем список новостей
+      } catch (error) {
+        newsMessageDiv.textContent = "Ошибка при публикации новости.";
+      }
+    }
+
+    async function loadNews() {
+      const newsList = document.getElementById('newsList');
+      const snapshot = await db.collection("texts").orderBy("createdAt", "desc").get();
+      newsList.innerHTML = '';
+      snapshot.docs.forEach(doc => {
+        const newsData = doc.data();
+        const newsElement = document.createElement('div');
+        newsElement.classList.add('item');
+        newsElement.innerHTML = `
+          <h4>${newsData.title}</h4>
+          <p>${newsData.text}</p>
+          <button onclick="deleteNews('${doc.id}')">Удалить</button>
+        `;
+        newsList.appendChild(newsElement);
+      });
+    }
+
+    async function deleteNews(newsId) {
+      await db.collection("texts").doc(newsId).delete();
+      loadNews();
+    }
+
+    // Загрузка заявок
+    const zayavkiContainer = document.getElementById('zayavkiList');
+
+    async function loadZayavki() {
+      const querySnapshot = await db.collection("zayavki").get();
+      zayavkiContainer.innerHTML = '';
+
+      if (querySnapshot.empty) {
+        zayavkiContainer.innerHTML = 'Нет заявок.';
+        return;
+      }
+
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const div = document.createElement('div');
+        div.className = 'zayavka';
+        div.innerHTML = `
+          <strong>Имя:</strong> ${data.name || '---'}<br>
+          <strong>Телефон:</strong> ${data.phone || '---'}<br>
+          <button data-id="${docSnap.id}">❌ Удалить</button>
+        `;
+        div.querySelector('button').addEventListener('click', async (e) => {
+          const id = e.target.getAttribute('data-id');
+          await db.collection("zayavki").doc(id).delete();
+          loadZayavki();
+        });
+
+        zayavkiContainer.appendChild(div);
+      });
+    }
+
+    loadReviews();
+    loadNews();
+    loadZayavki();
+
+    // Функция для переключения секций
+    function showSection(id) {
+      document.querySelectorAll('section').forEach((sec) => {
+        sec.classList.remove('active');
+      });
+      document.getElementById(id).classList.add('active');
+      document.querySelectorAll('.bottom-menu button').forEach((btn) => {
+        btn.classList.remove('active');
+      });
+      document.querySelector(`.bottom-menu button[onclick="showSection('${id}')"]`).classList.add('active');
+    }
+  </script>
+</body>
+</html>
