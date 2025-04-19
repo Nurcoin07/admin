@@ -50,15 +50,7 @@
 
   <!-- Новости -->
   <section id="news" class="active">
-    <h2>Новости</h2>
-    <h3>Опубликовать новость</h3>
-    <input type="text" id="newsTitle" placeholder="Заголовок новости" />
-    <textarea id="newsText" placeholder="Текст новости"></textarea>
-    <button class="submit-btn" onclick="submitNews()">Опубликовать новость</button>
-    <div class="message" id="newsMessage"></div>
-
-    <h3>Последние новости:</h3>
-    <div id="newsList"></div>
+    <iframe src="https://nurcoin07.github.io/newsp/" frameborder="0" width="100%" height="10000px"></iframe>
   </section>
 
   <!-- Отзывы -->
@@ -72,6 +64,10 @@
     <h3>Все отзывы:</h3>
     <div id="reviewsList"></div>
   </section>
+<section id="zayavki">
+    <iframe src="https://nurcoin07.github.io/zayavki/" frameborder="0" width="100%" height="10000px"></iframe>
+  </section>
+
 
   
 
@@ -79,7 +75,7 @@
   <div class="bottom-menu">
     <button onclick="showSection('news')" class="active">Новости</button>
     <button onclick="showSection('reviews')">Отзывы</button>
-    <a href="https://nurcoin07.github.io/zayavki/"><button>Заявки</button></a>
+    <button onclick="showSection('zayavki')">Заявки</button>
   </div>
 
   <!-- Firebase SDKs -->
